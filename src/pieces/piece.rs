@@ -2,11 +2,16 @@ use opengl_graphics::GlGraphics;
 use piston::RenderArgs;
 
 use crate::TableVec;
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Team {
+  Green,
+  Black,
+}
 
 pub trait Piece {
   fn draw(
     &self,
-    gl: &RenderArgs,
+    args: &RenderArgs,
     gl: &mut GlGraphics,
     pos: (usize, usize),
   );
@@ -17,4 +22,5 @@ pub trait Piece {
     table: &TableVec<dyn Piece>,
   ) -> bool;
   fn clone_piece(&self) -> Box<dyn Piece>;
+  fn team(&self) -> Team;
 }

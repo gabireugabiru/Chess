@@ -5,15 +5,24 @@ use opengl_graphics::{GlGraphics, Texture};
 use piston::RenderArgs;
 
 use crate::{Piece, TableVec};
+
+use super::piece::Team;
 #[derive(Clone)]
 pub struct Tower {
   texture: Rc<Texture>,
+  team: Team,
 }
 
 impl Tower {
-  pub fn new(textures: &HashMap<&str, Rc<Texture>>) -> Box<Self> {
-    let texture = textures.get("tower_green").unwrap().clone();
-    Box::new(Self { texture })
+  pub fn new(
+    textures: &HashMap<&str, Rc<Texture>>,
+    team: Team,
+  ) -> Box<Self> {
+    let texture = match team {
+      Team::Black => textures.get("tower_black").unwrap().clone(),
+      Team::Green => textures.get("tower_green").unwrap().clone(),
+    };
+    Box::new(Self { texture, team })
   }
 }
 impl Piece for Tower {
@@ -21,11 +30,11 @@ impl Piece for Tower {
     &self,
     args: &RenderArgs,
     gl: &mut GlGraphics,
-    (x, y): (usize, usize),
+    (y, x): (usize, usize),
   ) {
     gl.draw(args.viewport(), |c, gl| {
       let transformers_o_segundo_filme =
-        c.transform.trans((y * 50) as f64, (x * 50) as f64);
+        c.transform.trans((x * 50) as f64, (y * 50) as f64);
       graphics::image(&*self.texture, transformers_o_segundo_filme, gl)
     });
   }
@@ -38,55 +47,66 @@ impl Piece for Tower {
     if current_pos == desired_pos {
       return false;
     }
-    let (dx, dy) = desired_pos;
     let (cx, cy) = current_pos;
-    let mut max_y = (7, 0);
-    let mut max_x = (7, 0);
 
-    //GET THE BOUNDS FOR X
-    for i in 0..8 {
-      if table[i][cy].is_some() {
-        if cx == i {
-          continue;
-        } else if cx < i {
-          max_x.0 = i - 1;
-        } else {
-          max_x.1 = i + 1;
-          break;
+    let mut valid_positions: Vec<(usize, usize)> = Vec::new();
+
+    for i in cx + 1..8 {
+      if let Some(piece) = &table[i][cy] {
+        if piece.team() != self.team {
+          valid_positions.push((i, cy));
         }
+        break;
       }
+      valid_positions.push((i, cy));
     }
-    //GET THE BOUNDS FOR Y
-    for i in 0..8 {
-      if table[cx][i].is_some() {
-        if cy == i {
-          continue;
-        } else if cy < i {
-          max_y.0 = i - 1;
-        } else {
-          max_y.1 = i + 1;
+    if cx != 0 {
+      let mut i = cx;
+      while i > 0 {
+        i -= 1;
+        if let Some(piece) = &table[i][cy] {
+          if piece.team() != self.team {
+            valid_positions.push((i, cy));
+          }
           break;
         }
+        valid_positions.push((i, cy));
       }
     }
 
-    //CHECK IF IS THE SAME COLUMN OR SAME ROW
-    if cx == dx || dy == cy {
-      // CHECK IF IT IS IN THE BOUNDS
-      if dx <= max_x.0 && dx >= max_x.1 {
-        if dy <= max_y.0 && dy >= max_y.1 {
-          true
-        } else {
-          false
+    for i in cy + 1..8 {
+      if let Some(piece) = &table[cx][i] {
+        if piece.team() != self.team {
+          valid_positions.push((cx, i));
         }
-      } else {
-        false
+        break;
       }
+      valid_positions.push((cx, i));
+    }
+    if cy != 0 {
+      let mut i = cy;
+      while i > 0 {
+        i -= 1;
+        if let Some(piece) = &table[cx][i] {
+          if piece.team() != self.team {
+            valid_positions.push((cx, i));
+          }
+          break;
+        }
+        valid_positions.push((cx, i));
+      }
+    }
+
+    if valid_positions.contains(&desired_pos) {
+      true
     } else {
       false
     }
   }
   fn clone_piece(&self) -> Box<dyn Piece> {
     Box::new(self.clone())
+  }
+  fn team(&self) -> Team {
+    self.team
   }
 }

@@ -8,13 +8,18 @@ use piston::{
   RenderArgs, RenderEvent, UpdateEvent, WindowSettings,
 };
 mod pieces {
+  pub mod bishop;
   pub mod horse;
   pub mod piece;
   pub mod tower;
 }
-use pieces::{horse::Horse, piece::Piece, tower::Tower};
+use pieces::{
+  bishop::Bishop,
+  horse::Horse,
+  piece::{Piece, Team},
+  tower::Tower,
+};
 type TableVec<T> = Vec<Vec<Option<Box<T>>>>;
-
 pub struct Game<'a> {
   gl: GlGraphics,
   textures: HashMap<&'a str, Rc<Texture>>,
@@ -28,27 +33,6 @@ impl Game<'_> {
   fn new(opengl: OpenGL) -> Self {
     let gl = GlGraphics::new(opengl);
 
-    let texture = Rc::new(
-      opengl_graphics::Texture::from_path(
-        "assets/TowerGreen.png",
-        &TextureSettings::new(),
-      )
-      .unwrap(),
-    );
-    let texture2 = Rc::new(
-      opengl_graphics::Texture::from_path(
-        "assets/HorseGreen.png",
-        &TextureSettings::new(),
-      )
-      .unwrap(),
-    );
-
-    gl.has_texture_alpha(&texture);
-    gl.has_texture_alpha(&texture2);
-
-    let mut textures = HashMap::new();
-    textures.insert("tower_green", texture);
-    textures.insert("horse_green", texture2);
     //CREATING TABLE
     let mut table: TableVec<dyn Piece> = vec![];
     for _ in 0..8 {
@@ -59,11 +43,7 @@ impl Game<'_> {
       table.push(inner);
     }
 
-    //INTIATE THE PIECES THE SOLDIERS THE RAINHA DA INGALTERRA
-    // table[0][0] = Some(Horse::new(&textures));
-    table[0][0] = Some(Tower::new(&textures));
-    table[4][4] = Some(Horse::new(&textures));
-
+    let textures = HashMap::new();
     Self {
       gl,
       pos: (0., 0.),
@@ -72,6 +52,41 @@ impl Game<'_> {
       is_piece_selected: false,
       selected: None,
     }
+  }
+  fn init_textures(&mut self) {
+    let textures = &mut self.textures;
+
+    textures
+      .insert("horse_green", Self::texture_from_file("HorseGreen.png"));
+    textures
+      .insert("tower_green", Self::texture_from_file("TowerGreen.png"));
+    textures
+      .insert("bishop_green", Self::texture_from_file("BishopGreen.png"));
+
+    textures
+      .insert("horse_black", Self::texture_from_file("HorseBlack.png"));
+    textures
+      .insert("tower_black", Self::texture_from_file("TowerBlack.png"));
+    textures
+      .insert("bishop_black", Self::texture_from_file("BishopBlack.png"));
+  }
+  fn init_pieces(&mut self) {
+    let table = &mut self.table;
+    let textures = &self.textures;
+
+    //INTIATE THE PIECES THE SOLDIERS THE RAINHA DA INGALTERRA
+    table[0][1] = Some(Bishop::new(&textures, Team::Green));
+    table[0][0] = Some(Tower::new(&textures, Team::Black));
+    table[4][4] = Some(Horse::new(&textures, Team::Black));
+  }
+  fn texture_from_file(file: &str) -> Rc<Texture> {
+    Rc::new(
+      opengl_graphics::Texture::from_path(
+        format!("assets/{}", file),
+        &TextureSettings::new(),
+      )
+      .unwrap(),
+    )
   }
   fn render(&mut self, args: &RenderArgs) {
     let square = graphics::rectangle::square(0., 0., 50.);
@@ -150,6 +165,8 @@ fn main() {
       .build()
       .unwrap();
   let mut game = Game::new(opengl);
+  game.init_textures();
+  game.init_pieces();
 
   let mut events = Events::new(EventSettings::new());
 
