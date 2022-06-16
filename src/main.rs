@@ -27,6 +27,7 @@ pub struct Game<'a> {
   pos: (f64, f64),
   selected: Option<(usize, usize)>,
   is_piece_selected: bool,
+  valid_positions: Option<Vec<(usize, usize)>>,
 }
 
 impl Game<'_> {
@@ -51,6 +52,7 @@ impl Game<'_> {
       table,
       is_piece_selected: false,
       selected: None,
+      valid_positions: None,
     }
   }
   fn init_textures(&mut self) {
@@ -70,15 +72,17 @@ impl Game<'_> {
     textures
       .insert("bishop_black", Self::texture_from_file("BishopBlack.png"));
   }
+
   fn init_pieces(&mut self) {
     let table = &mut self.table;
     let textures = &self.textures;
 
     //INTIATE THE PIECES THE SOLDIERS THE RAINHA DA INGALTERRA
-    table[0][1] = Some(Bishop::new(&textures, Team::Green));
+    table[3][3] = Some(Bishop::new(&textures, Team::Green));
     table[0][0] = Some(Tower::new(&textures, Team::Black));
-    table[4][4] = Some(Horse::new(&textures, Team::Black));
+    table[4][4] = Some(Horse::new(&textures, Team::Green));
   }
+
   fn texture_from_file(file: &str) -> Rc<Texture> {
     Rc::new(
       opengl_graphics::Texture::from_path(
@@ -93,6 +97,7 @@ impl Game<'_> {
     let white = [1., 1., 1., 1.];
     let yellow = [0.9, 0.8, 0.1, 1.0];
     let blue = [0., 0., 0.7, 0.4];
+    let red = [0.7, 0., 0., 0.4];
 
     for y in 0..8 {
       for x in 0..8 {
@@ -116,6 +121,15 @@ impl Game<'_> {
             c.transform.trans((pos.1 * 50) as f64, (pos.0 * 50) as f64);
           graphics::rectangle(blue, square, transform, gl);
         })
+      }
+    }
+    if let Some(valid_pos) = &self.valid_positions {
+      for pos in valid_pos {
+        self.gl.draw(args.viewport(), |c, gl| {
+          let transform =
+            c.transform.trans((pos.1 * 50) as f64, (pos.0 * 50) as f64);
+          graphics::rectangle(red, square, transform, gl);
+        });
       }
     }
   }
@@ -147,10 +161,13 @@ impl Game<'_> {
       }
       self.is_piece_selected = false;
       self.selected = None;
+      self.valid_positions = None;
     } else {
-      if self.table[y][x].is_some() {
+      if let Some(piece) = &self.table[y][x] {
         self.is_piece_selected = true;
         self.selected = Some((y, x));
+        self.valid_positions =
+          Some(piece.valid_positions((y, x), &self.table))
       }
     }
   }

@@ -21,6 +21,11 @@ pub trait Piece {
     desired_pos: (usize, usize),
     table: &TableVec<dyn Piece>,
   ) -> bool;
+  fn valid_positions(
+    &self,
+    current_pos: (usize, usize),
+    table: &TableVec<dyn Piece>,
+  ) -> Vec<(usize, usize)>;
   fn clone_piece(&self) -> Box<dyn Piece>;
   fn team(&self) -> Team;
 }

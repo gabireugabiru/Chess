@@ -38,15 +38,11 @@ impl Piece for Tower {
       graphics::image(&*self.texture, transformers_o_segundo_filme, gl)
     });
   }
-  fn is_position_valid(
+  fn valid_positions(
     &self,
     current_pos: (usize, usize),
-    desired_pos: (usize, usize),
     table: &TableVec<dyn Piece>,
-  ) -> bool {
-    if current_pos == desired_pos {
-      return false;
-    }
+  ) -> Vec<(usize, usize)> {
     let (cx, cy) = current_pos;
 
     let mut valid_positions: Vec<(usize, usize)> = Vec::new();
@@ -96,7 +92,18 @@ impl Piece for Tower {
         valid_positions.push((cx, i));
       }
     }
-
+    valid_positions
+  }
+  fn is_position_valid(
+    &self,
+    current_pos: (usize, usize),
+    desired_pos: (usize, usize),
+    table: &TableVec<dyn Piece>,
+  ) -> bool {
+    if current_pos == desired_pos {
+      return false;
+    }
+    let valid_positions = self.valid_positions(current_pos, table);
     if valid_positions.contains(&desired_pos) {
       true
     } else {
